@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FocusFlow To-Do App</title>
+
+<style>
+body{
+    font-family: Arial;
+    background:#0f172a;
+    color:white;
+    text-align:center;
+    margin:0;
+}
+
+.container{
+    width:90%;
+    max-width:600px;
+    margin:auto;
+    padding:20px;
+}
+
+input, select, button{
+    padding:10px;
+    margin:5px;
+    border-radius:8px;
+    border:none;
+}
+
+button{
+    cursor:pointer;
+    background:#22c55e;
+    color:white;
+}
+
+.task{
+    background:#1e293b;
+    margin:10px;
+    padding:10px;
+    border-radius:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.low{border-left:5px solid green;}
+.medium{border-left:5px solid orange;}
+.high{border-left:5px solid red;}
+
+#focusBox{
+    display:none;
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:black;
+    color:white;
+    padding-top:100px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🚀 FocusFlow To-Do</h1>
+
+<!-- INPUT -->
+<input id="taskInput" placeholder="Enter task">
+<select id="priority">
+    <option value="low">Low</option>
+    <option value="medium">Medium</option>
+    <option value="high">High</option>
+</select>
+<button onclick="addTask()">Add Task</button>
+
+<h3>📊 Score: <span id="score">0</span></h3>
+<h3>🔥 Streak: <span id="streak">0</span></h3>
+
+<div id="taskList"></div>
+
+</div>
+
+<!-- FOCUS MODE -->
+<div id="focusBox">
+    <h1>🎯 Focus Mode</h1>
+    <h2 id="focusTask"></h2>
+    <h1 id="timer">25:00</h1>
+    <button onclick="endFocus()">End Session</button>
+</div>
+
+<script>
+
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let score = parseInt(localStorage.getItem("score")) || 0;
+let streak = parseInt(localStorage.getItem("streak")) || 0;
+
+document.getElementById("score").innerText = score;
+document.getElementById("streak").innerText = streak;
+
+function save(){
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+    localStorage.setItem("score", score);
+    localStorage.setItem("streak", streak);
+}
+
+function addTask(){
+    let text = document.getElementById("taskInput").value;
+
+    if(text === "") return;
+
+    let priority = document.getElementById("priority").value;
+
+    tasks.push({text, priority, done:false});
+    document.getElementById("taskInput").value = "";
+
+    save();
+    render();
+}
+
+function render(){
+    let list = document.getElementById("taskList");
+    list.innerHTML = "";
+
+    tasks.forEach((t,i)=>{
+        list.innerHTML += `
+        <div class="task ${t.priority}">
+            <span>${t.text}</span>
+
+            <div>
+                <button onclick="startFocus(${i})">Focus</button>
+                <button onclick="completeTask(${i})">✔</button>
+                <button onclick="deleteTask(${i})">❌</button>
+            </div>
+        </div>
+        `;
+    });
+}
+
+function deleteTask(i){
+    tasks.splice(i,1);
+    save();
+    render();
+}
+
+function completeTask(i){
+    if(!tasks[i].done){
+        score += 10;
+        tasks[i].done = true;
+    }
+
+    save();
+    updateStats();
+    render();
+}
+
+function updateStats(){
+    document.getElementById("score").innerText = score;
+    document.getElementById("streak").innerText = streak;
+}
+
+/* ---------- FOCUS MODE ---------- */
+
+let timer;
+let time = 1500;
+
+function startFocus(i){
+    document.getElementById("focusBox").style.display = "block";
+    document.getElementById("focusTask").innerText = tasks[i].text;
+
+    time = 1500;
+    runTimer();
+}
+
+function runTimer(){
+    clearInterval(timer);
+
+    timer = setInterval(()=>{
+        let min = Math.floor(time/60);
+        let sec = time%60;
+
+        document.getElementById("timer").innerText =
+        `${min}:${sec < 10 ? "0"+sec : sec}`;
+
+        time--;
+
+        if(time < 0){
+            clearInterval(timer);
+            score += 20;
+            streak += 1;
+            save();
+            updateStats();
+            alert("Focus session completed!");
+            endFocus();
+        }
+
+    },1000);
+}
+
+function endFocus(){
+    document.getElementById("focusBox").style.display = "none";
+    clearInterval(timer);
+}
+
+render();
+
+</script>
+
+</body>
+</html>
